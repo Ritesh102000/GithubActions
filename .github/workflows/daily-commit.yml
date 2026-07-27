@@ -24,7 +24,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create 1 to 4 daily commits and push
+      - name: Create 1 to 6 daily commits and push
         shell: bash
         run: |
           set -euo pipefail
@@ -40,7 +40,7 @@ jobs:
           git config user.name "Ritesh102000"
           git config user.email "141893988+Ritesh102000@users.noreply.github.com"
 
-          commit_count=$((RANDOM % 4 + 1))
+          commit_count=$((RANDOM % 6 + 1))
           echo "Creating ${commit_count} commits for ${today}."
 
           for ((i = 1; i <= commit_count; i++)); do
