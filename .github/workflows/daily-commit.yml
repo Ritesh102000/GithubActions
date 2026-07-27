@@ -1,4 +1,4 @@
-name: Daily README commit
+name: Daily random README commits
 
 on:
   schedule:
@@ -21,24 +21,38 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Add daily update and push
+      - name: Create 1 to 4 daily commits and push
         shell: bash
         run: |
           set -euo pipefail
 
           today="$(TZ=Asia/Kolkata date +%F)"
-          entry="- ${today}: automated daily update"
+          batch_marker="<!-- daily-batch:${today} -->"
 
-          if grep -Fqx -- "$entry" README.md; then
-            echo "Daily entry already exists for ${today}."
+          if grep -Fqx -- "$batch_marker" README.md; then
+            echo "Daily commit batch already exists for ${today}."
             exit 0
           fi
 
-          printf '\n%s\n' "$entry" >> README.md
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md
-          git commit -m "chore: daily README update ${today}"
+
+          commit_count=$((RANDOM % 4 + 1))
+          echo "Creating ${commit_count} commits for ${today}."
+
+          for ((i = 1; i <= commit_count; i++)); do
+            if ((i == 1)); then
+              printf '\n%s\n' "$batch_marker" >> README.md
+            fi
+
+            printf -- '- %s: automated daily update %d of %d\n' \
+              "$today" "$i" "$commit_count" >> README.md
+
+            git add README.md
+            git commit -m "chore: daily update ${today} (${i}/${commit_count})"
+          done
+
           git push
