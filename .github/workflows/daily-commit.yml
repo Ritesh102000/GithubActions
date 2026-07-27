@@ -29,16 +29,21 @@ jobs:
         run: |
           set -euo pipefail
 
+          branch="${GITHUB_REF_NAME}"
           today="$(TZ=Asia/Kolkata date +%F)"
           batch_marker="<!-- daily-batch:${today} -->"
+
+          git config user.name "Ritesh102000"
+          git config user.email "141893988+Ritesh102000@users.noreply.github.com"
+
+          # Start from the newest remote commit even if this run was queued earlier.
+          git fetch origin "$branch"
+          git checkout -B "$branch" "origin/$branch"
 
           if grep -Fqx -- "$batch_marker" README.md; then
             echo "Daily commit batch already exists for ${today}."
             exit 0
           fi
-
-          git config user.name "Ritesh102000"
-          git config user.email "141893988+Ritesh102000@users.noreply.github.com"
 
           commit_count=$((RANDOM % 6 + 1))
           echo "Creating ${commit_count} commits for ${today}."
@@ -55,4 +60,16 @@ jobs:
             git commit -m "chore: daily update ${today} (${i}/${commit_count})"
           done
 
-          git push
+          # If main changed during this job, rebase and retry up to three times.
+          for attempt in 1 2 3; do
+            if git push origin "HEAD:${branch}"; then
+              exit 0
+            fi
+
+            echo "Push attempt ${attempt} failed; rebasing onto latest ${branch}."
+            git fetch origin "$branch"
+            git rebase "origin/$branch"
+          done
+
+          echo "Push failed after three attempts."
+          exit 1
