@@ -37,8 +37,8 @@ jobs:
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "Ritesh102000"
+          git config user.email "141893988+Ritesh102000@users.noreply.github.com"
 
           commit_count=$((RANDOM % 4 + 1))
           echo "Creating ${commit_count} commits for ${today}."
