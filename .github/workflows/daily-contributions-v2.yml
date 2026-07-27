@@ -1,0 +1,76 @@
+name: Daily Contributions V2 (1-6)
+run-name: Daily Contributions V2 - run ${{ github.run_number }}
+
+on:
+  schedule:
+    # 14:37 UTC is 8:07 PM in India.
+    - cron: "37 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-contributions-v2
+  cancel-in-progress: false
+
+jobs:
+  create-contributions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create and push 1 to 6 commits
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          branch="${GITHUB_REF_NAME}"
+          today="$(TZ=Asia/Kolkata date +%F)"
+          batch_marker="<!-- daily-contributions-v2:${today} -->"
+
+          git config user.name "Ritesh102000"
+          git config user.email "141893988+Ritesh102000@users.noreply.github.com"
+
+          echo "V2: syncing with latest ${branch}."
+          git fetch origin "$branch"
+          git checkout -B "$branch" "origin/$branch"
+
+          if grep -Fqx -- "$batch_marker" README.md; then
+            echo "V2: today's contribution batch already exists."
+            exit 0
+          fi
+
+          commit_count=$((RANDOM % 6 + 1))
+          echo "V2: creating ${commit_count} commits for ${today}."
+
+          for ((i = 1; i <= commit_count; i++)); do
+            if ((i == 1)); then
+              printf '\n%s\n' "$batch_marker" >> README.md
+            fi
+
+            printf -- '- %s: contribution %d of %d\n' \
+              "$today" "$i" "$commit_count" >> README.md
+
+            git add README.md
+            git commit -m "chore: daily contribution ${today} (${i}/${commit_count})"
+          done
+
+          for attempt in 1 2 3; do
+            echo "V2: push attempt ${attempt}."
+            if git push origin "HEAD:${branch}"; then
+              echo "V2: successfully pushed ${commit_count} commits."
+              exit 0
+            fi
+
+            git fetch origin "$branch"
+            git rebase "origin/$branch"
+          done
+
+          echo "V2: push failed after three attempts."
+          exit 1
